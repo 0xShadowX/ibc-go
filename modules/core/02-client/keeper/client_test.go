@@ -14,13 +14,13 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 
-	clienttypes "github.com/cosmos/ibc-go/v11/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v11/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v11/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v11/modules/core/exported"
-	solomachine "github.com/cosmos/ibc-go/v11/modules/light-clients/06-solomachine"
-	ibctm "github.com/cosmos/ibc-go/v11/modules/light-clients/07-tendermint"
-	ibctesting "github.com/cosmos/ibc-go/v11/testing"
+	clienttypes "github.com/lfdt-ibc/ibc-go/v11/modules/core/02-client/types"
+	commitmenttypes "github.com/lfdt-ibc/ibc-go/v11/modules/core/23-commitment/types"
+	host "github.com/lfdt-ibc/ibc-go/v11/modules/core/24-host"
+	"github.com/lfdt-ibc/ibc-go/v11/modules/core/exported"
+	solomachine "github.com/lfdt-ibc/ibc-go/v11/modules/light-clients/06-solomachine"
+	ibctm "github.com/lfdt-ibc/ibc-go/v11/modules/light-clients/07-tendermint"
+	ibctesting "github.com/lfdt-ibc/ibc-go/v11/testing"
 )
 
 func (s *KeeperTestSuite) TestCreateClient() {
@@ -588,9 +588,24 @@ func (s *KeeperTestSuite) TestRecoverClient() {
 		{
 			"substitute client does not exist",
 			func() {
-				substitute = ibctesting.InvalidID
+				substitute = clienttypes.FormatClientIdentifier(exported.Tendermint, 100)
 			},
 			clienttypes.ErrClientNotActive,
+		},
+		{
+			"substitute client identifier is invalid",
+			func() {
+				substitute = ibctesting.InvalidID
+			},
+			host.ErrInvalidID,
+		},
+		{
+			"substitute client type does not match subject client type",
+			func() {
+				sm := ibctesting.NewSolomachine(s.T(), s.chainA.Codec, "06-solomachine-0", "testing", 1)
+				substitute = sm.CreateClient(s.chainA)
+			},
+			clienttypes.ErrInvalidClientType,
 		},
 		{
 			"subject and substitute have equal latest height",

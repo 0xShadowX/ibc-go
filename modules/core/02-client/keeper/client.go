@@ -7,9 +7,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/cosmos/ibc-go/v11/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v11/modules/core/exported"
-	"github.com/cosmos/ibc-go/v11/modules/core/internal/telemetry"
+	"github.com/lfdt-ibc/ibc-go/v11/modules/core/02-client/types"
+	"github.com/lfdt-ibc/ibc-go/v11/modules/core/exported"
+	"github.com/lfdt-ibc/ibc-go/v11/modules/core/internal/telemetry"
 )
 
 // CreateClient generates a new client identifier and invokes the associated light client module in order to
@@ -124,6 +124,17 @@ func (k *Keeper) RecoverClient(ctx sdk.Context, subjectClientID, substituteClien
 	clientModule, err := k.Route(ctx, subjectClientID)
 	if err != nil {
 		return errorsmod.Wrap(types.ErrRouteNotFound, subjectClientID)
+	}
+
+	// The subject light client module is used to inspect the substitute below,
+	// so the substitute must be of the same client type.
+	subjectClientType := types.MustParseClientIdentifier(subjectClientID)
+	substituteClientType, _, err := types.ParseClientIdentifier(substituteClientID)
+	if err != nil {
+		return errorsmod.Wrapf(err, "unable to parse substitute client identifier %s", substituteClientID)
+	}
+	if substituteClientType != subjectClientType {
+		return errorsmod.Wrapf(types.ErrInvalidClientType, "substitute client type (%s) does not match subject client type (%s)", substituteClientType, subjectClientType)
 	}
 
 	if status := clientModule.Status(ctx, subjectClientID); status == exported.Active {
